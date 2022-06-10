@@ -1,0 +1,8 @@
+Player One, 0, 10, 10, 5
+Player Two, 1, 10, 10, 5
+4
+#,#, ,#, ,~, , ,
+1,Baron,0
+2,Serf,3
+1,Serf,4
+2,Baron,7
