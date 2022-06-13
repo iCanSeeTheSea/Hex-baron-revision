@@ -1,5 +1,5 @@
-Player One,0,5,5,2
-Player Two,0,5,5,2
+Player One,0,5,5,5,2
+Player Two,0,5,5,5,2
 6
 #,#,~,~, , , ,~, , , , , ,#,#,#,~,~
 1,Baron,0

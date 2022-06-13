@@ -99,6 +99,28 @@ class PBDSPiece(Piece):
             return 5
 
 
+#  Mining and Spelunking serf
+class MASSPiece(Piece):
+    def __int__(self, Player1):
+        super(MASSPiece, self).__init__(Player1)
+        self._PieceType = "M"
+        self._VPValue = 3
+        self._FuelCostOfMove = 1
+
+    def CheckMoveIsValid(self, DistanceBetweenTiles, StartTerrain, EndTerrain):
+        if DistanceBetweenTiles != 1 or StartTerrain == "@":
+            return -1
+        return self._FuelCostOfMove
+
+    def Mine(self, Terrain):
+        if Terrain != "@":
+            return 0
+        if random.random() < 0.5:
+            return 1
+        else:
+            return 3
+
+
 class Tile:
     def __init__(self, xcoord, ycoord, zcoord):
         self._x = xcoord
@@ -169,6 +191,8 @@ class HexGrid:
             NewPiece = LESSPiece(BelongsToPlayer1)
         elif TypeOfPiece == "PBDS":
             NewPiece = PBDSPiece(BelongsToPlayer1)
+        elif TypeOfPiece == 'MASS':
+            NewPiece = MASSPiece(BelongsToPlayer1)
         else:
             NewPiece = Piece(BelongsToPlayer1)
         self._Pieces.append(NewPiece)
@@ -436,16 +460,17 @@ class HexGrid:
 
 
 class Player:
-    def __init__(self, N, V, F, L, T):
+    def __init__(self, N, V, F, L, O, T,):
         self._Name = N
         self._VPs = V
         self._Fuel = F
         self._Lumber = L
+        self._Ore = O
         self._PiecesInSupply = T
 
     def GetStateString(self):
         return "VPs: " + str(self._VPs) + "   Pieces in supply: " + str(self._PiecesInSupply) + \
-               "   Lumber: " + str(self._Lumber) + "   Fuel: " + str(self._Fuel)
+               "   Lumber: " + str(self._Lumber) + "   Fuel: " + str(self._Fuel) + "   Ore:" + str(self._Ore)
 
     def GetVPs(self):
         return self._VPs
@@ -475,7 +500,7 @@ class Player:
         self._PiecesInSupply -= 1
 
     def getDataAsString(self):
-        dataString = f'{self._Name}, {self._VPs}, {self._Fuel}, {self._Lumber}, {self._PiecesInSupply}'
+        dataString = f'{self._Name}, {self._VPs}, {self._Fuel}, {self._Lumber}, {self._Ore}, {self._PiecesInSupply}'
         return dataString
 
 
@@ -512,11 +537,11 @@ def LoadGame():
             LineFromFile = f.readline().rstrip()
             Items = LineFromFile.split(",")
             Player1 = Player(Items[0], int(Items[1]), int(
-                Items[2]), int(Items[3]), int(Items[4]))
+                Items[2]), int(Items[3]), int(Items[4]), int(Items[5]))
             LineFromFile = f.readline().rstrip()
             Items = LineFromFile.split(",")
             Player2 = Player(Items[0], int(Items[1]), int(
-                Items[2]), int(Items[3]), int(Items[4]))
+                Items[2]), int(Items[3]), int(Items[4]), int(Items[5]))
             GridSize = int(f.readline().rstrip())
             Grid = HexGrid(GridSize)
             T = f.readline().rstrip().split(",")
@@ -566,11 +591,13 @@ def saveGame(Player1, Player2, Grid):
                         stringToSave += 'LESS'
                     elif piece.lower() == 'p':
                         stringToSave += 'PBDS'
+                    elif piece.lower() == 'm':
+                        stringToSave += 'MASS'
                     stringToSave += f'{count}'
                     file.write(stringToSave + '\n')
 
-
 def SetUpDefaultGame():
+
     T = [" ", "#", "#", " ", "~", "~", " ", " ", " ", "~", " ", "#", "#", " ", " ", " ",
          " ", " ", "#", "#", "#", "#", "~", "~", "~", "~", "~", " ", "#", " ", "#", " "]
     GridSize = 8
@@ -591,14 +618,16 @@ def setUpCustomGame():
         print('invalid grid size')
         GridSize = int(input('enter grid size: '))
     Grid = HexGrid(GridSize)
-    Player1 = Player("Player One", 0, 10, 10, 5)
-    Player2 = Player("Player Two", 1, 10, 10, 5)
+    Player1 = Player("Player One", 0, 10, 10, 10, 5)
+    Player2 = Player("Player Two", 1, 10, 10, 10, 5)
     T = []
     for count in range(GridSize*(GridSize//2)-1):
-        randType = random.randint(1, 4)
-        if randType == 3:
+        randType = random.randint(1, 8)
+        if randType == 8:
+            T.append('@')
+        elif randType > 5:
             T.append('#')
-        elif randType == 4:
+        elif randType > 3:
             T.append('~')
         else:
             T.append(' ')
@@ -633,7 +662,7 @@ def CheckStandardCommandFormat(Items):
 
 def CheckUpgradeCommandFormat(Items):
     if len(Items) == 3:
-        if Items[1].upper() != "LESS" and Items[1].upper() != "PBDS":
+        if Items[1].upper() != "LESS" and Items[1].upper() != "PBDS" and Items[1].upper() != "MASS":
             return False
         try:
             Result = int(Items[2])
@@ -647,7 +676,7 @@ def CheckCommandIsValid(Items):
     if len(Items) > 0:
         if Items[0] == "move":
             return CheckMoveCommandFormat(Items)
-        elif Items[0] in ["dig", "saw", "spawn"]:
+        elif Items[0] in ["dig", "saw", "mine", "spawn"]:
             return CheckStandardCommandFormat(Items)
         elif Items[0] == "upgrade":
             return CheckUpgradeCommandFormat(Items)
@@ -676,10 +705,11 @@ def PlayGame(Player1, Player2, Grid):
                 if 'help' in command.lower():
                     print('''Available commands:
         move [from: int] [to: int] - moves a piece from one tile to another (cost: variable fuel)
-        upgrade [type: LESS / PBDS] [position: int] - upgrades a serf into a LESS or PBDS (cost: 5 lumber)
+        upgrade [type: LESS / PBDS / MASS] [position: int] - upgrades a serf into a LESS, PBDS or MASS (cost: 5 lumber)
         spawn [position: int] - spawns a serf at a position, must be adjacent to baron (cost: 3 lumber, 1 available piece)
         saw [position: int] - uses a LESS to obtain wood from a forest
-        dif [position: int] - used a PBDS to obtain fuel from a peat bog
+        dig [position: int] - used a PBDS to obtain fuel from a peat bog
+        mine [position: int} - uses a MASS to obtain ore from a cave
         save - saves the current game state to a file
         quit - saves and quits the game
                     ''')
