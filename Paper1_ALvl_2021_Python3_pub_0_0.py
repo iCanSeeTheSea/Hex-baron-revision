@@ -99,9 +99,9 @@ class PBDSPiece(Piece):
             return 5
 
 
-#  Mining and Spelunking serf
+# * Mining and Spelunking serf
 class MASSPiece(Piece):
-    def __int__(self, Player1):
+    def __init__(self, Player1):
         super(MASSPiece, self).__init__(Player1)
         self._PieceType = "M"
         self._VPValue = 3
@@ -198,7 +198,7 @@ class HexGrid:
         self._Pieces.append(NewPiece)
         self._Tiles[Location].SetPiece(NewPiece)
 
-    def ExecuteCommand(self, Items, FuelAvailable, LumberAvailable, PiecesInSupply):
+    def ExecuteCommand(self, Items, FuelAvailable, LumberAvailable, OreAvailable, PiecesInSupply):
         FuelChange = 0
         LumberChange = 0
         OreChange = 0
@@ -487,6 +487,9 @@ class Player:
     def GetLumber(self):
         return self._Lumber
 
+    def GetOre(self):
+        return self._Ore
+
     def GetName(self):
         return self._Name
 
@@ -498,6 +501,9 @@ class Player:
 
     def UpdateLumber(self, n):
         self._Lumber += n
+
+    def UpdateOre(self, n):
+        self._Ore += n
 
     def GetPiecesInSupply(self):
         return self._PiecesInSupply
@@ -608,8 +614,8 @@ def SetUpDefaultGame():
          " ", " ", "#", "#", "#", "#", "~", "~", "~", "~", "~", " ", "#", " ", "#", " "]
     GridSize = 8
     Grid = HexGrid(GridSize)
-    Player1 = Player("Player One", 0, 10, 10, 5)
-    Player2 = Player("Player Two", 1, 10, 10, 5)
+    Player1 = Player("Player One", 0, 10, 10, 10, 5)
+    Player2 = Player("Player Two", 1, 10, 10, 10, 5)
     Grid.SetUpGridTerrain(T)
     Grid.AddPiece(True, "Baron", 0)
     Grid.AddPiece(True, "Serf", 8)
@@ -738,15 +744,16 @@ def PlayGame(Player1, Player2, Grid):
                 SupplyChange = 0
                 OreChange = 0
                 if Player1Turn:
-                    SummaryOfResult, FuelChange, LumberChange, SupplyChange, OreChange = Grid.ExecuteCommand(
-                        Items, Player1.GetFuel(), Player1.GetLumber(), Player1.GetPiecesInSupply())
+                    SummaryOfResult, FuelChange, LumberChange, OreChange, SupplyChange = Grid.ExecuteCommand(
+                        Items, Player1.GetFuel(), Player1.GetLumber(), Player1.GetOre(), Player1.GetPiecesInSupply())
                     Player1.UpdateLumber(LumberChange)
                     Player1.UpdateFuel(FuelChange)
+                    Player1.UpdateOre(OreChange)
                     if SupplyChange == 1:
                         Player1.RemoveTileFromSupply()
                 else:
-                    SummaryOfResult, FuelChange, LumberChange, SupplyChange, OreChange = Grid.ExecuteCommand(
-                        Items, Player2.GetFuel(), Player2.GetLumber(), Player2.GetPiecesInSupply())
+                    SummaryOfResult, FuelChange, LumberChange, OreChange, SupplyChange = Grid.ExecuteCommand(
+                        Items, Player2.GetFuel(), Player2.GetLumber(), Player2.GetOre(), Player2.GetPiecesInSupply())
                     Player2.UpdateLumber(LumberChange)
                     Player2.UpdateFuel(FuelChange)
                     if SupplyChange == 1:
